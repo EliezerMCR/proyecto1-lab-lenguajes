@@ -1,0 +1,15 @@
+ITEM: llaves
+DESC: Unas llaves brillantes.
+---
+ITEM: cuchillo
+DESC: Un cuchillo afilado.
+---
+SALA: Sala de Estar
+DESC: Una acogedora sala de estar. Hay una puerta al norte.
+SALIDA: Norte -> Cocina
+OBJETO: llaves
+---
+SALA: Cocina
+DESC: Una cocina desordenada. Hay una puerta al sur.
+SALIDA: Sur -> Sala de Estar
+OBJETO: cuchillo
