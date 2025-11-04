@@ -4,12 +4,20 @@ DESC: Unas llaves brillantes.
 ITEM: cuchillo
 DESC: Un cuchillo afilado.
 ---
+ITEM: pelota
+DESC: Una pelota de futbol.
+---
 SALA: Sala de Estar
 DESC: Una acogedora sala de estar. Hay una puerta al norte.
-SALIDA: Norte -> Cocina
+SALIDA: Norte -> Cocina Oeste -> Patio
 OBJETO: llaves
 ---
 SALA: Cocina
 DESC: Una cocina desordenada. Hay una puerta al sur.
 SALIDA: Sur -> Sala de Estar
 OBJETO: cuchillo
+---
+SALA: Patio
+DESC: Un patio desordenada. Hay una puerta al este.
+SALIDA: Este -> Sala de Estar
+OBJETO: pelota

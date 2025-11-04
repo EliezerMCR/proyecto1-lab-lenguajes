@@ -1,0 +1,7 @@
+# Stack build artifacts
+.stack-work/
+
+# Generated cabal file (from package.yaml)
+*.cabal
+
+stack.yaml.lock
