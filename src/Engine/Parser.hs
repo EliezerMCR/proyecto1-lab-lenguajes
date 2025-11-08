@@ -27,13 +27,13 @@ parseCommand input =
     ("coger":rest) ->
       if null rest
         then Nothing
-        else Just (Coger (unwords rest))
+        else Just (Tomar (unwords rest))
 
     -- Comando: inventario
     ["inventario"] -> Just Inventario
 
     -- Comando: inv (abreviación)
-    ["inv"] -> Just Inv
+    ["inv"] -> Just Inventario
 
     -- Comando: salir
     ["salir"] -> Just Salir

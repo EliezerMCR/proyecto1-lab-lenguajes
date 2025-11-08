@@ -7,6 +7,8 @@ import Engine.Core
 import Engine.Persistence
 import qualified Data.Map as Map
 import System.IO
+import System.Random (randomRIO)
+
 
 main :: IO ()
 main = do
@@ -16,7 +18,7 @@ main = do
     putStrLn ""
 
     -- Cargar el mundo desde mundo.txt
-    result <- loadWorldData "mundo.txt"
+    result <- loadWorldData "mundoalterno.txt"
 
     case result of
         Left errorMsg -> do
@@ -28,18 +30,24 @@ main = do
             if Map.null rooms
                 then putStrLn "Error: El mundo no tiene salas definidas."
                 else do
+                     -- Obtener la lista de nombres de salas
+                    let roomNames = Map.keys rooms
+                     -- Elegir un índice aleatorio
+                    randomIndex <- randomRIO (0, length roomNames - 1)
+                    -- Seleccionar la sala inicial aleatoriamente
+                    let startRoomName = roomNames !! randomIndex
                     -- Crear el estado inicial
                     -- La sala inicial será la primera sala del mapa
-                    let firstRoomName = fst $ head $ Map.toList rooms
+                    --let firstRoomName = fst $ head $ Map.toList rooms
                     let initialState = GameState
-                            { currentRoom = firstRoomName
+                            { currentRoom = startRoomName
                             , inventory = Map.empty
                             , worldRooms = rooms
                             , worldItems = items
                             }
 
                     -- Mostrar descripción inicial de la sala
-                    case Map.lookup firstRoomName rooms of
+                    case Map.lookup startRoomName rooms of
                         Nothing -> putStrLn "Error: No se pudo cargar la sala inicial."
                         Just room -> do
                             putStrLn "=== COMIENZA LA AVENTURA ==="
@@ -50,7 +58,7 @@ main = do
 
                             -- Iniciar el bucle del juego
                             gameLoop initialState
-
+            
 
 -- El bucle principal del juego
 gameLoop :: GameState -> IO ()

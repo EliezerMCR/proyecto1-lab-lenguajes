@@ -23,7 +23,12 @@ handleMove dir state =
     Nothing -> ("Error: Sala actual no existe.", state)
     Just room ->
       case Map.lookup dir (roomExits room) of
-        Nothing -> ("No puedes ir en esa dirección.", state)
+        Nothing ->
+          let availableExits = Map.keys (roomExits room)
+              exitNames = map show availableExits
+          in if null exitNames
+               then ("No hay salidas en esta sala.", state)
+               else ("No puedes ir en esa dirección. Las salidas disponibles son: " ++ intercalate ", " exitNames ++ ".", state)
         Just nextRoomName ->
           case Map.lookup nextRoomName (worldRooms state) of
             Nothing -> ("Error: La sala destino no existe.", state)
@@ -31,6 +36,7 @@ handleMove dir state =
               let newState = state { currentRoom = nextRoomName }
                   msg = describeRoom nextRoom
               in (msg, newState)
+
 
 -- Maneja el comando de mirar la sala actual
 handleLook :: GameState -> (String, GameState)
@@ -50,23 +56,26 @@ handleTake objName state =
           case Map.lookup objName (worldItems state) of
             Nothing -> ("Error: El objeto no existe en el mundo.", state)
             Just item ->
-              let -- Remover objeto de la sala
-                  newRoomObjects = filter (/= objName) (roomObjects room)
+              let newRoomObjects = filter (/= objName) (roomObjects room)
                   newRoom = room { roomObjects = newRoomObjects }
                   newRooms = Map.insert (currentRoom state) newRoom (worldRooms state)
-                  -- Añadir objeto al inventario
                   newInventory = Map.insert objName item (inventory state)
                   newState = state { worldRooms = newRooms, inventory = newInventory }
                   msg = "Has tomado: " ++ itemDesc item
               in (msg, newState)
-        else ("No hay ningún objeto llamado '" ++ objName ++ "' aquí.", state)
+        else
+          let availableObjects = roomObjects room
+          in if null availableObjects
+               then ("No hay objetos en esta sala.", state)
+               else ("No hay ningún objeto llamado '" ++ objName ++ "' aquí. Los objetos disponibles son: " ++ intercalate ", " availableObjects ++ ".", state)
+
 
 -- Maneja el comando de mostrar inventario
 handleInventory :: GameState -> (String, GameState)
 handleInventory state =
   let inv = inventory state
   in if Map.null inv
-       then ("Tu inventario está vacío.", state)
+       then ("Tu inventario está vacío. ¡Explora para encontrar objetos!", state)
        else
          let items = Map.elems inv
              itemList = map (\item -> "- " ++ itemName item ++ ": " ++ itemDesc item) items
