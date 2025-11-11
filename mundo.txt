@@ -4,6 +4,12 @@ DESC: Unas llaves brillantes.
 ITEM: cuchillo
 DESC: Un cuchillo afilado.
 ---
+ITEM: martillo
+DESC: sirve para clava en la madera
+---
+ITEM: silla
+DESC: un lugar comodo
+---
 SALA: Sala de Estar
 DESC: Una acogedora sala de estar. Hay una puerta al norte.
 SALIDA: Norte -> Cocina
@@ -12,4 +18,15 @@ OBJETO: llaves
 SALA: Cocina
 DESC: Una cocina desordenada. Hay una puerta al sur.
 SALIDA: Sur -> Sala de Estar
+SALIDA: Este -> AA
 OBJETO: cuchillo
+---
+SALA: AA 
+DESC: un lugar random. hay una puerta al oeste
+SALIDA: Oeste -> Cocina
+OBJETO: martillo
+---
+SAlA: Patio
+DESC: un lugar tranquilo para descansar. hay una puerta al Este
+SALIDA: Este -> Sala de estar
+Objeto: silla

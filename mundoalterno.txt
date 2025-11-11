@@ -1,0 +1,69 @@
+ITEM: llave_oxida
+DESC: Una llave vieja y oxidada. Parece que podría abrir algo importante.
+
+---
+ITEM: espada
+DESC: Una espada afilada y brillante. Útil para defenderse.
+
+---
+ITEM: pocion
+DESC: Una poción roja brillante. ¿Será veneno o cura?
+
+---
+ITEM: libro
+DESC: Un libro antiguo con runas extrañas. Podría ser valioso para un erudito.
+
+---
+ITEM: linterna
+DESC: Una linterna de aceite. Ilumina los lugares oscuros.
+
+---
+ITEM: monedas
+DESC: Un puñado de monedas de oro. ¡Podrías comprar algo con esto!
+
+---
+SALA: Sala de Entrada
+DESC: Estás en la entrada de una antigua mansión. El aire huele a humedad y polvo. Hay puertas al norte, este y oeste.
+SALIDA: Norte -> Vestíbulo
+SALIDA: Este -> Biblioteca
+SALIDA: Oeste -> Cocina
+OBJETO: linterna
+
+---
+SALA: Vestíbulo
+DESC: Un amplio vestíbulo con un gran candelabro colgando del techo. Hay escaleras que suben al norte y una puerta al sur.
+SALIDA: Norte -> Pasillo Superior
+SALIDA: Sur -> Sala de Entrada
+OBJETO: llave_oxida
+
+---
+SALA: Biblioteca
+DESC: Una biblioteca llena de estantes polvorientos y libros antiguos. Hay una puerta al oeste.
+SALIDA: Oeste -> Sala de Entrada
+OBJETO: libro
+
+---
+SALA: Cocina
+DESC: Una cocina antigua con utensilios de cobre y una gran mesa de madera. Hay una puerta al este y una trampilla al sótano.
+SALIDA: Este -> Sala de Entrada
+SALIDA: Sur -> Sótano
+OBJETO: espada
+OBJETO: monedas
+
+---
+SALA: Pasillo Superior
+DESC: Un pasillo estrecho con cuadros en las paredes. Hay puertas al este y al sur.
+SALIDA: Este -> Dormitorio
+SALIDA: Sur -> Vestíbulo
+OBJETO: pocion
+
+---
+SALA: Dormitorio
+DESC: Un dormitorio con una cama antigua y un espejo roto. Solo hay una puerta al oeste.
+SALIDA: Oeste -> Pasillo Superior
+
+---
+SALA: Sótano
+DESC: Un sótano oscuro y húmedo. Hay algo brillante en el rincón. La única salida es hacia arriba.
+SALIDA: Norte -> Cocina
+OBJETO: monedas
