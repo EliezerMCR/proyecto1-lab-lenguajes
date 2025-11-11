@@ -1,8 +1,9 @@
 module Engine.Core (processCommand) where
 
-import Engine.Types
+import Data.Char (toLower)
+import Data.List (find, intercalate)
 import qualified Data.Map as Map
-import Data.List (intercalate)
+import Engine.Types
 
 -- La función PURA que actualiza el estado del juego
 processCommand :: Command -> GameState -> (String, GameState)
@@ -51,23 +52,28 @@ handleTake objName state =
   case Map.lookup (currentRoom state) (worldRooms state) of
     Nothing -> ("Error: Sala actual no existe.", state)
     Just room ->
-      if objName `elem` roomObjects room
-        then
-          case Map.lookup objName (worldItems state) of
+      case find (nameMatches objName) (roomObjects room) of
+        Just actualName ->
+          case Map.lookup actualName (worldItems state) of
             Nothing -> ("Error: El objeto no existe en el mundo.", state)
             Just item ->
-              let newRoomObjects = filter (/= objName) (roomObjects room)
+              let newRoomObjects = filter (/= actualName) (roomObjects room)
                   newRoom = room { roomObjects = newRoomObjects }
                   newRooms = Map.insert (currentRoom state) newRoom (worldRooms state)
-                  newInventory = Map.insert objName item (inventory state)
+                  newInventory = Map.insert actualName item (inventory state)
                   newState = state { worldRooms = newRooms, inventory = newInventory }
                   msg = "Has tomado: " ++ itemDesc item
               in (msg, newState)
-        else
+        Nothing ->
           let availableObjects = roomObjects room
           in if null availableObjects
                then ("No hay objetos en esta sala.", state)
                else ("No hay ningún objeto llamado '" ++ objName ++ "' aquí. Los objetos disponibles son: " ++ intercalate ", " availableObjects ++ ".", state)
+
+-- Compara nombres de objetos sin diferenciar mayúsculas/minúsculas
+nameMatches :: String -> String -> Bool
+nameMatches expected actual =
+  map toLower expected == map toLower actual
 
 
 -- Maneja el comando de mostrar inventario

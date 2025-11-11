@@ -18,7 +18,7 @@ main = do
     putStrLn ""
 
     -- Cargar el mundo desde mundo.txt
-    result <- loadWorldData "mundoalterno.txt"
+    result <- loadWorldData "mundo.txt"
 
     case result of
         Left errorMsg -> do

@@ -1,9 +1,10 @@
 module Engine.Persistence (loadWorldData) where
 
+import Control.Monad (foldM)
 import Engine.Types
 import qualified Data.Map as Map
 import Data.List (stripPrefix)
-import Data.Char (toLower)
+import Data.Char (isSpace, toLower)
 import Data.Maybe (mapMaybe)
 
 -- Carga el archivo del mundo.
@@ -20,8 +21,8 @@ parseWorldFile content = do
   let (itemBlocks, roomBlocks) = partitionBlocks blocks
   items <- parseItems itemBlocks
   rooms <- parseRooms roomBlocks
-  validateReferences rooms items
-  return (rooms, items)
+  normalizedRooms <- normalizeRooms rooms items
+  return (normalizedRooms, items)
 
 -- Divide el contenido en bloques separados por "---"
 splitBlocks :: String -> [String]
@@ -39,14 +40,14 @@ splitOn delimiter str = go str []
         Just rest -> reverse acc : go rest []
         Nothing -> go (tail s) (head s : acc)
 
--- Separa bloques de ITEM y SALA
+-- Separa bloques de ITEM y SALA (insensible a mayúsculas/minúsculas)
 partitionBlocks :: [String] -> ([String], [String])
 partitionBlocks blocks = (itemBlocks, roomBlocks)
   where
-    itemBlocks = filter isItemBlock blocks
-    roomBlocks = filter isRoomBlock blocks
-    isItemBlock block = "ITEM:" `elem` map (take 5) (lines block)
-    isRoomBlock block = "SALA:" `elem` map (take 5) (lines block)
+    itemBlocks = filter (containsPrefix "ITEM:") blocks
+    roomBlocks = filter (containsPrefix "SALA:") blocks
+    containsPrefix prefix block =
+      any (startsWithCI prefix) (map trimStart (lines block))
 
 -- Parsea todos los bloques de items
 parseItems :: [String] -> Either String ItemContainer
@@ -57,11 +58,9 @@ parseItems blocks = do
 -- Parsea un bloque de item individual
 parseItemBlock :: String -> Either String (String, Item)
 parseItemBlock block = do
-  let lns = filter (not . null) $ lines block
-  itemNameLine <- findLine "ITEM:" lns
-  itemDescLine <- findLine "DESC:" lns
-  let name = trim $ drop 5 itemNameLine
-  let desc = trim $ drop 5 itemDescLine
+  let lns = filter (not . null . trimStart) $ lines block
+  name <- findField "ITEM:" lns
+  desc <- findField "DESC:" lns
   if null name
     then Left "Item sin nombre"
     else return (name, Item name desc)
@@ -75,18 +74,15 @@ parseRooms blocks = do
 -- Parsea un bloque de sala individual
 parseRoomBlock :: String -> Either String (String, Room)
 parseRoomBlock block = do
-  let lns = filter (not . null) $ lines block
-  roomNameLine <- findLine "SALA:" lns
-  roomDescLine <- findLine "DESC:" lns
-  let name = trim $ drop 5 roomNameLine
-  let desc = trim $ drop 5 roomDescLine
-  let exitLines = filter (\l -> take 7 l == "SALIDA:") lns
-  let objectLines = filter (\l -> take 7 l == "OBJETO:") lns
+  let lns = filter (not . null . trimStart) $ lines block
+  name <- findField "SALA:" lns
+  desc <- findField "DESC:" lns
+  let exitLines = filter (startsWithCI "SALIDA:") lns
+  let objectNames = mapMaybe (stripField "OBJETO:") lns
   exits <- parseExits exitLines
-  let objects = map (trim . drop 7) objectLines
   if null name
     then Left "Sala sin nombre"
-    else return (name, Room name desc exits objects)
+    else return (name, Room name desc exits objectNames)
 
 -- Parsea las salidas de una sala
 parseExits :: [String] -> Either String (Map.Map Direction String)
@@ -97,7 +93,9 @@ parseExits exitLines = do
 -- Parsea una línea de salida: "SALIDA: Norte -> Cocina"
 parseExitLine :: String -> Either String (Direction, String)
 parseExitLine line = do
-  let content = trim $ drop 7 line  -- Quitar "SALIDA:"
+  content <- case dropPrefixCI "SALIDA:" line of
+    Just rest -> Right (trim rest)
+    Nothing -> Left $ "Formato de salida inválido: " ++ line
   case break (== '-') content of
     (dirStr, '-':'>':roomStr) -> do
       dir <- parseDirection (trim dirStr)
@@ -114,23 +112,81 @@ parseDirection dirStr =
     "oeste" -> Right Oeste
     _ -> Left $ "Dirección desconocida: " ++ dirStr
 
--- Busca una línea que comience con un prefijo
-findLine :: String -> [String] -> Either String String
-findLine prefix lines =
-  case filter (\l -> take (length prefix) l == prefix) lines of
+-- Busca una línea que comience con un prefijo y devuelve su valor
+findField :: String -> [String] -> Either String String
+findField prefix lines =
+  case mapMaybe (stripField prefix) lines of
     (x:_) -> Right x
     [] -> Left $ "No se encontró línea con prefijo: " ++ prefix
+
+stripField :: String -> String -> Maybe String
+stripField prefix line =
+  fmap trim (dropPrefixCI prefix line)
+
+dropPrefixCI :: String -> String -> Maybe String
+dropPrefixCI prefix line =
+  let cleaned = trimStart line
+      len = length prefix
+  in if length cleaned >= len &&
+        map toLower (take len cleaned) == map toLower prefix
+        then Just (drop len cleaned)
+        else Nothing
+
+startsWithCI :: String -> String -> Bool
+startsWithCI prefix line =
+  case dropPrefixCI prefix line of
+    Just _ -> True
+    Nothing -> False
+
+trimStart :: String -> String
+trimStart = dropWhile isSpace
 
 -- Elimina espacios al inicio y final
 trim :: String -> String
 trim = f . f
   where f = reverse . dropWhile (`elem` " \t\n\r")
 
--- Valida que todos los objetos referenciados en salas existen
-validateReferences :: RoomContainer -> ItemContainer -> Either String ()
-validateReferences rooms items = do
-  let allObjectRefs = concatMap roomObjects (Map.elems rooms)
-  let missingObjects = filter (`Map.notMember` items) allObjectRefs
-  if null missingObjects
-    then Right ()
-    else Left $ "Objetos referenciados pero no definidos: " ++ show missingObjects
+-- Normaliza referencias de salas y objetos, haciendo que los nombres coincidan con los definidos
+normalizeRooms :: RoomContainer -> ItemContainer -> Either String RoomContainer
+normalizeRooms rooms items = do
+  roomCanon <- buildCanonicalMap "salas" (Map.keys rooms)
+  itemCanon <- buildCanonicalMap "objetos" (Map.keys items)
+  Map.traverseWithKey (normalizeRoom roomCanon itemCanon) rooms
+
+normalizeRoom :: Map.Map String String -> Map.Map String String -> String -> Room -> Either String Room
+normalizeRoom roomCanon itemCanon roomName room = do
+  exits' <- traverseExits (roomExits room)
+  objects' <- mapM resolveObject (roomObjects room)
+  return room { roomExits = exits', roomObjects = objects' }
+  where
+    traverseExits = Map.traverseWithKey resolveRoom
+
+    resolveRoom dir dest =
+      case Map.lookup (normalizeKey dest) roomCanon of
+        Just actual -> Right actual
+        Nothing ->
+          Left $
+            "La sala '" ++ roomName ++ "' tiene una salida (" ++ show dir ++ ") hacia '"
+            ++ dest ++ "' que no coincide con ninguna sala definida."
+
+    resolveObject objName =
+      case Map.lookup (normalizeKey objName) itemCanon of
+        Just actual -> Right actual
+        Nothing -> Left $ "La sala '" ++ roomName ++ "' referencia el objeto '" ++ objName ++ "' que no existe."
+
+-- Construye un mapa de nombres canónicos evitando duplicados insensibles a mayúsculas/minúsculas
+buildCanonicalMap :: String -> [String] -> Either String (Map.Map String String)
+buildCanonicalMap label names =
+  foldM insertCanon Map.empty names
+  where
+    insertCanon acc name =
+      let key = normalizeKey name
+      in case Map.lookup key acc of
+           Nothing -> Right (Map.insert key name acc)
+           Just existing ->
+             Left $
+               "Nombres de " ++ label ++ " duplicados que difieren solo por mayúsculas/minúsculas: "
+               ++ show existing ++ " y " ++ show name
+
+normalizeKey :: String -> String
+normalizeKey = map toLower . trim

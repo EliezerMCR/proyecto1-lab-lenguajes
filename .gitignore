@@ -5,3 +5,5 @@
 *.cabal
 
 stack.yaml.lock
+
+.vscode/
