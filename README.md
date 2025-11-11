@@ -110,7 +110,7 @@ Este diseño logra una separación estricta entre lógica pura y efectos de I/O:
 4. **Mantenibilidad**: Los cambios en la lógica del juego no afectan el I/O y viceversa.
 
 ### 3. Sala Inicial Aleatoria
-El juego, inicialmente, comienza la partida eligiendo la sala por orden alfabetico, dejar una sala fija, traería problemas al pasar diferentes archivos 'mundo.txt', por tanto se tomo la decisión de iniciar la partida en una sala seleccionada aleatoriamente entre todas las salas disponibles. Esto se implementó usando System.Random para elegir un índice aleatorio de la lista de salas cargadas. Esto añade variedad y rejugabilidad al juego.
+El juego, inicialmente, comienza la partida eligiendo la sala por orden alfabético; el orden alfabético inicial se debía a Data.Map.toList que devuelve los elementos ordenados por clave (es decir, por el nombre de la sala). dejar una sala fija traería problemas al pasar diferentes archivos 'mundo.txt'; por tanto, se tomó la decisión de iniciar la partida en una sala seleccionada aleatoriamente entre todas las salas disponibles. Esto se implementó usando System.Random para elegir un índice aleatorio de la lista de salas cargadas. la ventaja de esto es que añade variedad y rejugabilidad al juego.
 
 Comandos Disponibles
 El motor soporta los siguientes comandos:
